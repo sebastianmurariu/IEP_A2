@@ -1,0 +1,3 @@
+/home/sebastian/IEP/Lucrarea4/build/CMakeFiles/rebuild_cache.dir
+/home/sebastian/IEP/Lucrarea4/build/CMakeFiles/Lucrarea4.dir
+/home/sebastian/IEP/Lucrarea4/build/CMakeFiles/edit_cache.dir
