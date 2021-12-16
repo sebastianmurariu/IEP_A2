@@ -1,8 +1,20 @@
-#include <iostream>
-#include <math.h>
-#include <string.h>
+#include<memory>
+#include<mutex>
+#include<thread>
+#include<iostream>
 
 using namespace std;
+
+mutex m;
+int i = 0;
+
+void makeATripWithASofer()
+{
+    m.lock();                        //m blocheaza soferul cat timp e in cursa
+    cout << "Soferul " << i << " is in a trip right now" << endl;
+    i++;                            //niciun alt thread nu are acces la sofer pana cand se apeleaza m.unlock()
+    m.unlock();                     //se deblocheaza soferul
+}
 
 class Masina
 {
@@ -12,9 +24,9 @@ protected:
     std::string numar_de_inmatriculare;
 public:
     /* Costructor clasic */
-    Masina(int numar_locuri, char categorie, std::string &numar_de_inmatriculare)
+    Masina(int numar_locuri, char categorie, std::string& numar_de_inmatriculare)
     {
-        this->numar_locuri= numar_locuri;
+        this->numar_locuri = numar_locuri;
         this->categorie = categorie;
         this->numar_de_inmatriculare = numar_de_inmatriculare;
     }
@@ -23,27 +35,25 @@ public:
     /* Membrii din initialization list sunt in aceeasi ordine cum sunt definiti in clasa */
     Masina()
         : numar_locuri(5),
-          categorie('A'),
-          numar_de_inmatriculare("TM99MXS")
+        categorie('A'),
+        numar_de_inmatriculare("TM99MXS")
     {}
     /* Copy Constructor */
-    Masina(const Masina &mas)
+    Masina(const Masina& mas)
     {
         numar_locuri = mas.numar_locuri;
         categorie = mas.categorie;
         numar_de_inmatriculare = mas.numar_de_inmatriculare;
-        cout<<"Copy constructor called "<<endl;
     }
 
     /* Copy assignment operator -> Have assignment operators return a reference to *this. (ITEM 10) */
-    Masina &operator = (const Masina &mas)
+    Masina& operator = (const Masina& mas)
     {
-        if(this == &mas) return *this; /* identity test: if a self-assignment, do nothing (ITEM 11)*/
+        if (this == &mas) return *this; /* identity test: if a self-assignment, do nothing (ITEM 11)*/
 
         numar_locuri = mas.numar_locuri;
         categorie = mas.categorie;
         numar_de_inmatriculare = mas.numar_de_inmatriculare;
-        cout<<"Copy Assignment Operator called "<<endl;
         return *this;
 
     }
@@ -51,119 +61,68 @@ public:
     /*Destructor */
     ~Masina()
     {
-        cout << "Masina distrusa \n";
     };
 
     void afisareMasina()
     {
-        std::cout << "Masina " << numar_de_inmatriculare << " are numarul de locuri " << numar_locuri << " si este de categoria " << categorie <<".\n";
+        std::cout << "Masina " << numar_de_inmatriculare << " are numarul de locuri " << numar_locuri << " si este de categoria " << categorie << ".\n";
     }
 
     int calculImpozit()
     {
-        return int(categorie)*250 + numar_locuri*10;
+        return int(categorie) * 250 + numar_locuri * 10;
     }
 
-    std::string getNrInmatriculare ()
+    std::string getNrInmatriculare()
     {
         return numar_de_inmatriculare;
     }
 
+    int getNrLocuri()
+    {
+        return numar_locuri;
+    }
+
 };
 
-/* Copying functions should be sure to copy all of an object’s data
-members and all of its base class parts!!! (ITEM 12) */
-
-class MasinaPrezindentiala : public Masina
+class Sofer
 {
 private:
-    std::string personalitate;
+    std::string nume_sofer;
+    Masina mas;
 public:
     /* Costructor clasic */
-    MasinaPrezindentiala(int numar_locuri, char categorie, std::string &numar_de_inmatriculare,  std::string &personalitate)
+    Sofer(std::string& nume_sofer, Masina  mas)
     {
-        Masina(numar_locuri,categorie,numar_de_inmatriculare);
-        this->personalitate= personalitate;
+        this->nume_sofer = nume_sofer;
+        this->mas = mas;
     }
 
-    /* Costructor clasic cu initialization list */
-    /* Membrii din initialization list sunt in aceeasi ordine cum sunt definiti in clasa */
-    MasinaPrezindentiala()
-        : Masina(),
-          personalitate("Ion Popescu")
-    {}
-    /* Copy Constructor */
-    MasinaPrezindentiala(const MasinaPrezindentiala &mas)
-        :   Masina(mas),
-            personalitate(mas.personalitate)
-    {}
-
-    /* Copy assignment operator -> Have assignment operators return a reference to *this. (ITEM 10) */
-    MasinaPrezindentiala &operator = (const MasinaPrezindentiala &mas)
+    std::shared_ptr<Masina> chooseMasinaImpozit(Masina m1, Masina m2)
     {
-        if(this == &mas) return *this; /* identity test: if a self-assignment, do nothing (ITEM 11)*/
-
-        Masina::operator = (mas);
-        personalitate = mas.personalitate;
-        return *this;
+        std::shared_ptr<Masina> mas1 = std::make_shared<Masina>(m1);
+        std::shared_ptr<Masina> mas2 = std::make_shared<Masina>(m2);
+        if (m1.calculImpozit() < m2.calculImpozit())
+            mas2 = mas1;
+        return mas2;
 
     }
-    /*Destructor */
-    ~MasinaPrezindentiala()
-    {
-        cout << "Masina prezidentiala distrusa \n";
-    };
 
-    void afisareMasina()
-    {
-        std::cout << "Masina prezidentiala duce personalitatea: "<< personalitate << numar_de_inmatriculare << " are numarul de locuri " << numar_locuri << " si este de categoria " << categorie <<".\n";
-    }
-};
-/* Don’t try to implement one of the copying functions in terms of the
-other. Instead, put common functionality in a third function that
-both call. */
-class FirmaDeInmatriculari
-{
-private:
-    std::string numar_pentru_inmatriculare;
-    std::string nume_firma;
-    /* Costructor clasic */
-    FirmaDeInmatriculari(std::string &numar_pentru_inmatriculare, std::string &nume_firma)
-    {
-        this->numar_pentru_inmatriculare= numar_pentru_inmatriculare;
-        this->nume_firma = nume_firma;
-    }
-    /* ITEM12 */
-    void initializareFirma(const FirmaDeInmatriculari& firma)
-    {
-        this->numar_pentru_inmatriculare= firma.numar_pentru_inmatriculare;
-        this->nume_firma = firma.nume_firma;
-    }
-    /* Copy Constructor */
-    FirmaDeInmatriculari(const FirmaDeInmatriculari& firma)
-    {
-        initializareFirma(firma); //ITEM 12!!!!
-    }
 
-    /* Copy assignment operator */
-    FirmaDeInmatriculari operator=(const FirmaDeInmatriculari& firma)
+    std::auto_ptr<Masina> chooseMasinaNrLocuri(Masina m1, Masina m2)
     {
-        if(this == &firma) return *this; /* identity test: if a self-assignment, do nothing (ITEM 11*/
+        std::auto_ptr<Masina> mas1(new Masina(m1));
+        std::auto_ptr<Masina> mas2(new Masina(m2));
+        if (m1.getNrLocuri() < m2.getNrLocuri())
+            mas2 = mas1;
+        return mas2;
 
-        initializareFirma(firma); //ITEM 12!!!!
-        return *this;
     }
-
-    /*Destructor */
-    ~FirmaDeInmatriculari()
-    {
-        cout << "Firma De Inmatriculari distrusa \n";
-    }
-
-    void printFirmaDeInmatriculari()
+    void printSofer()
     {
 
-        cout << nume_firma << " " << numar_pentru_inmatriculare << endl;
+        cout << nume_sofer << " ";
+        mas.afisareMasina();
         cout << endl;
     }
 
@@ -173,32 +132,30 @@ int main()
 {
     int numar_locuri;
     char categorie;
-    std::string numar_de_inmatriculare;
-
-    /* initializare dinamica de la tastatura */
-    cout << "Introduceti datele masinii: " << '\n';
-    cout << "numar_locuri = ";
-    cin >> numar_locuri;
-    cout << "categorie = ";
-    cin >> categorie;
-    cout << "numar_de_inmatriculare = ";
-    cin >> numar_de_inmatriculare;
-    cout<<std::endl;
-    Masina m1 = Masina(numar_locuri, categorie, numar_de_inmatriculare);
+    std::string numar_de_inmatriculare1 = "TM99MXS";
+    std::string numar_de_inmatriculare2 = "TM77AAA";
+    Masina m1 = Masina(5, 'B', numar_de_inmatriculare1);
+    Masina m2 = Masina(4, 'A', numar_de_inmatriculare2);
     m1.afisareMasina();
-    Masina m2 = m1; /* Copy Constructor called */
     m2.afisareMasina();
-    Masina m3;
-    m3 = m2; /* Copy Assignment Operator called  */
-    m3.afisareMasina();
-    cout <<"Masina cu numarul de inmatriculare " << m3.getNrInmatriculare() << " are impozitul "<< m3.calculImpozit() << " lei. \n";
-    MasinaPrezindentiala M1;
-    M1.afisareMasina();
-    cout <<"Masina cu numarul de inmatriculare " << M1.getNrInmatriculare() << " are impozitul "<< M1.calculImpozit() << " lei. \n";
-    /*
-    MasinaPrezindentiala M2(M1); // Eroare  pentru ca are ca si clasa de baza pe Uncopyable si atunci Copy Costructorul este generat
-                                 // automat si nu poate fi folosit
-    MasinaPrezindentiala M3 = M1; // La fel si pentru Copy Assignament Operator
-    */
+    std::string nume_sofer1 = "Dani";
+    std::string nume_sofer2 = "Ionel";
+    Sofer s1 = Sofer(nume_sofer1, m1);
+    Sofer s2 = Sofer(nume_sofer2, m2);
+    std::auto_ptr<Masina> mas4(new Masina());
+    std::auto_ptr<Masina> mas5(new Masina());
+    std::shared_ptr<Masina> mas3 = std::make_shared<Masina>();
+    mas3 = s1.chooseMasinaImpozit(m1, m2);
+    mas4 = s1.chooseMasinaNrLocuri(m1, m2);
+    mas5 = mas4;
+    std::cout << "mas3 points to" << mas3.get() << '\n';
+    std::cout << "mas3 points to" << mas4.get() << '\n';
+    std::cout << "mas3 points to" << mas5.get() << '\n';
+    //mutex
+    thread person1(makeATripWithASofer);
+    thread person2(makeATripWithASofer);
+
+    person1.join();
+    person2.join();
     return 0;
 }
